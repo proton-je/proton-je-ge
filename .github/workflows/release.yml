@@ -6,6 +6,11 @@ on:
   push:
     tags:
       - 'GE-Proton*-*'
+      - 'proton-je-ge-*'
+
+# The release and upload jobs create the release and attach the build to it.
+permissions:
+  contents: write
 
 concurrency:
   group: ${{ github.ref_name }}
