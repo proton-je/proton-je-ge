@@ -59,6 +59,9 @@ jobs:
           patch -Np1 -i ./.github/patches/0001-build-strip-binaries-early.patch
           mkdir ./build
 
+      - name: Check the Proton-JE patches
+        run: ./.github/check-proton-je-patches.sh
+
       - name: Configure
         working-directory: ./build
         run: |
