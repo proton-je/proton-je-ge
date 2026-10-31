@@ -1,3 +1,73 @@
+# Proton-JE-GE
+
+GloriousEggroll's GE-Proton with the Wine fixes of [Proton-JE](https://github.com/jegglest/proton-je) that are pending
+upstream. Proton-JE, Valve's Proton Experimental plus these fixes, is no longer updated; Proton-JE-GE carries them on
+GE-Proton, for what GE adds on top of Valve, FSR 4 first of all ([Enabling FSR 4](#enabling-fsr-4) below:
+`PROTON_FSR4_UPGRADE=1 %command%`). GloriousEggroll has merged the fixes into GE-Proton for its next release
+([#912](https://github.com/GloriousEggroll/proton-ge-custom/pull/912),
+[#913](https://github.com/GloriousEggroll/proton-ge-custom/pull/913),
+[#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917); the Helldivers 2 fix of
+[#914](https://github.com/GloriousEggroll/proton-ge-custom/pull/914) comes with GE's Wine update instead). Until a
+GE-Proton release has them, this repository carries them, in the versions GE merged. It also carries a fix of its own,
+for threads killed during their startup (Helldivers 2), proposed to GE-Proton as
+[#921](https://github.com/GloriousEggroll/proton-ge-custom/pull/921).
+
+> [!Important]
+> Proton-JE-GE is not GE-Proton, and GloriousEggroll does not support it. Report problems to
+> [this repository's issues](../../issues), unless stock GE-Proton has them too.
+
+| | |
+|---|---|
+| Base | [GE-Proton11-11](https://github.com/GloriousEggroll/proton-ge-custom/releases/tag/GE-Proton11-11), unchanged; its Wine is ValveSoftware/wine [`c53678ab22a`](https://github.com/ValveSoftware/wine/commit/c53678ab22a85f0fad3588dd34f0452a463bd015) |
+| Releases | x86_64 only; tags `proton-je-ge-<GE version>-<n>`, e.g. `proton-je-ge-11-11-1`; `-<n>` counts rebuilds on the same GE release |
+
+### What is added
+
+Nine Wine patches in `patches/wine-hotfixes/pending/`, applied after all of GE's by the `PROTON-JE PATCHES` section of
+`patches/protonprep-valve-staging.sh`, the way GE applies its own. The build fails if one of them does not apply exactly
+(`.github/check-proton-je-patches.sh`).
+
+| Patches | Fixes | Upstream | Details |
+|---|---|---|---|
+| `ntdll-take-in-flight-alert-when-wait-on-address-times-out`, `ntdll-tests-wait-on-address-wake-racing-timeout` (Proton-JE's patches 2 and 3) | a wake that races a timed-out `RtlWaitOnAddress()` leaves an alert pending, so the thread's next wait returns early; Space Marine 2 crashes from it | Wine bug [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), Proton [#8072](https://github.com/ValveSoftware/Proton/issues/8072) | [waitonaddress-stale-alert](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/waitonaddress-stale-alert.md) |
+| `server-keep-owned-ntsync-mutex-until-owner-releases-or-dies`, `server-keep-in-process-mutex-closed-while-in-use`, `kernel32-tests-abandon-mutex-acquired-after-close` (patches 4 to 6) | with ntsync, a mutex whose handle was closed while it was owned or in use is never abandoned, and its waiters hang | Wine bugs [60417](https://bugs.winehq.org/show_bug.cgi?id=60417), [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) | [ntsync-mutex-owned-after-close](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/ntsync-mutex-owned-after-close.md), [ntsync-mutex-in-use-after-close](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/ntsync-mutex-in-use-after-close.md) |
+| `ntdll-free-teb-and-stacks-of-killed-threads`, `kernel32-tests-killed-thread-stack-freed` (patches 7 and 8) | a thread killed with `TerminateThread()` keeps its TEB and its stacks for as long as the process runs; Helldivers 2's anti-tamper code kills two threads every 0.4 seconds, so the game grows by about 34 GiB of address space and 360 MiB of memory an hour | not reported yet | [free-killed-thread-stacks](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/free-killed-thread-stacks.md); the ntdll patch is GE's version from [#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917), which leaves a killed thread that is still exiting for a later pass instead of waiting for it |
+| `ntdll-dont-keep-reply-pipe-open-during-thread-init` (patch 9, Proton-JE-GE's own) | a thread killed during its startup, after it has sent its first request to the server and before the server has read it, hangs for as long as the process runs, with its pipes and its stacks, and one killed just before leaks a file descriptor; Helldivers 2's anti-tamper code kills its new threads right away, so threads and file descriptors pile up during a session | not reported yet; proposed to GE-Proton as [#921](https://github.com/GloriousEggroll/proton-ge-custom/pull/921) | [Proton #7486](https://github.com/ValveSoftware/Proton/issues/7486#issuecomment-6594771550) |
+| `ntdll-ignore-semaphore-errors-in-rtlpunwaitcriticalsection` | `LeaveCriticalSection()` raises `STATUS_INVALID_HANDLE` on a bad semaphore, which crashes Helldivers 2 | Paul Gofman's `d5c4b850198` in Valve's Wine, in Proton Experimental since 20261027b | carried until GE's Wine has it |
+
+Checked on 2026-10-31 with the patched ntdll and wineserver swapped into the GE-Proton11-11 release: Wine's `ntdll:sync`
+and `kernel32:sync` tests pass in 64- and 32-bit (stock GE-Proton11-11: 4 and 3 failures), and Proton-JE's
+[probes](https://github.com/jegglest/proton-je/tree/je-11.0/docs-je/repro) find no stale alert, no hung abandoned mutex
+and no raise from `LeaveCriticalSection()`. Patches 7 and 8 were checked on 2026-11-01 the same way, swapped into
+release `proton-je-ge-11-11-1`: `kernel32:thread` passes in 64- and 32-bit (the release fails patch 8's 2 checks),
+and threads killed with `TerminateThread()` no longer leave their stacks behind. Release `proton-je-ge-11-11-2` passes
+the same tests and probes, 64- and 32-bit, and in Helldivers 2 its thread stacks no longer pile up
+([details](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/killed-thread-stacks.md#in-the-game)). GE's
+version of patch 7 was checked on 2026-11-02 the same way, swapped into GE-Proton11-11, and in release
+`proton-je-ge-11-11-3`, which is built with it: all of these tests and probes pass, 64- and 32-bit. Patch 9 was checked
+on 2026-11-02 the same way, swapped into release `proton-je-ge-11-11-3`, with a new probe,
+[`thread_init_kill`](.claude/skills/rebase-ge/probes/thread_init_kill.c): after 8 threads have each created and at once
+killed 500 threads, the release keeps 1,415 of them hung and 9,525 more file descriptors in 64-bit (759 and 6,982 in
+32-bit), and the patched build none. The tests and probes above still pass with it, 64- and 32-bit, and kernel32's process, loader,
+debugger, toolhelp, console and pipe tests and ntdll's thread, exception, info, wow64 and om tests show no new
+failures against the release.
+
+### Installing
+
+Download `proton-je-ge-<version>.tar.gz` and its `.sha512sum` from [Releases](../../releases), check it with
+`sha512sum -c`, extract it into `~/.steam/root/compatibilitytools.d/` (Flatpak Steam:
+`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`), restart Steam, and pick the tool under the game's
+Properties > Compatibility.
+
+### Building
+
+As in GE-Proton's [Building](#building) section below. A pushed `proton-je-ge-*` tag is built the same way by
+`.github/workflows/release.yml` and published as a release.
+
+---
+
+*GE-Proton's README follows, unchanged.*
+
 > [!Caution]
 >  **Myself (GloriousEggroll) and this project (GE-Proton) are not affiliated with any other websites related to GE-Proton. There is no existing website for GE-Proton other than this GitHub repository.**
 
