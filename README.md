@@ -1,3 +1,86 @@
+# Proton-JE-GE
+
+GloriousEggroll's GE-Proton with Wine fixes that are pending upstream and that no GE-Proton release has yet, for what
+GE adds on top of Valve's Proton, FSR 4 first of all ([Enabling FSR 4](#enabling-fsr-4) below:
+`PROTON_FSR4_UPGRADE=1 %command%`). It began by carrying the fixes of
+[Proton-JE](https://github.com/jegglest/proton-je), which is no longer updated, until GE-Proton had them.
+GE-Proton11-12 has them all ([#912](https://github.com/GloriousEggroll/proton-ge-custom/pull/912),
+[#913](https://github.com/GloriousEggroll/proton-ge-custom/pull/913),
+[#917](https://github.com/GloriousEggroll/proton-ge-custom/pull/917), and Valve's Helldivers 2 fix with GE's Wine
+update), along with Proton-JE-GE's fix for threads killed during their startup
+([#921](https://github.com/GloriousEggroll/proton-ge-custom/pull/921)). On GE-Proton11-12, Proton-JE-GE adds three
+fixes of its own. Two are for threads that are created and killed in quick succession, as Helldivers 2's anti-tamper
+code does; GE-Proton has taken both for its next release
+([#924](https://github.com/GloriousEggroll/proton-ge-custom/pull/924),
+[#926](https://github.com/GloriousEggroll/proton-ge-custom/pull/926)). The third is for GE-Proton's Wayland driver,
+which can freeze a game's picture on an old frame when the game moves from one Vulkan swapchain to another, as
+Warhammer Survivors does after Alt+Tab in exclusive fullscreen.
+
+> [!Important]
+> Proton-JE-GE is not GE-Proton, and GloriousEggroll does not support it. Report problems to
+> [this repository's issues](../../issues), unless stock GE-Proton has them too.
+
+| | |
+|---|---|
+| Base | [GE-Proton11-12](https://github.com/GloriousEggroll/proton-ge-custom/releases/tag/GE-Proton11-12), unchanged; its Wine is ValveSoftware/wine [`fda79a58593`](https://github.com/ValveSoftware/wine/commit/fda79a585939fb7512dc220a11249f9ffe825fcf) |
+| Releases | x86_64 only; tags `proton-je-ge-<GE version>-<n>`, e.g. `proton-je-ge-11-12-1`; `-<n>` counts rebuilds on the same GE release |
+
+### What is added
+
+Three Wine patches in `patches/wine-hotfixes/pending/`, applied after all of GE's by the `PROTON-JE PATCHES` section of
+`patches/protonprep-valve-staging.sh`, the way GE applies its own. The build fails if one of them does not apply exactly
+(`.github/check-proton-je-patches.sh`).
+
+| Patch | Fixes | Upstream | Details |
+|---|---|---|---|
+| `server-keep-request-status-when-dropping-stale-fd` (patch 10) | while threads are created and killed in quick succession, `NtCreateThreadEx()` can fail with `STATUS_INVALID_CID` although the server has created the thread and its handle, which then leaks: waiting for the new thread's request fd, the server first reads an fd sent by a thread that is already gone, and the failed lookup of that thread becomes the request's status | Wine bug [60672](https://bugs.winehq.org/show_bug.cgi?id=60672), fixed on Wine master in a different way ([`3d15b75cfa1`](https://gitlab.winehq.org/wine/wine/-/commit/3d15b75cfa1116dcce4bb7b149fdfddda8a2a101)); taken by GE-Proton ([#924](https://github.com/GloriousEggroll/proton-ge-custom/pull/924)) | the [patch](patches/wine-hotfixes/pending/server-keep-request-status-when-dropping-stale-fd.patch) |
+| `ntdll-dont-queue-a-killed-thread-twice` (patch 11) | GE-Proton11-12 frees the TEB and stacks of killed threads (patch 7, in the version GE merged), but it can put a killed thread on its list twice when another thread takes the list at the wrong moment; the TEB is then freed twice, and a later pass reads the pthread structure of a thread whose stacks are already freed, so `NtCreateThreadEx()` fails with `STATUS_ACCESS_VIOLATION` and leaks the new thread, or the process dies | GE-Proton's code: upstream Wine doesn't free a killed thread's stacks (Wine bug [60712](https://bugs.winehq.org/show_bug.cgi?id=60712)); taken by GE-Proton ([#926](https://github.com/GloriousEggroll/proton-ge-custom/pull/926)) | the [patch](patches/wine-hotfixes/pending/ntdll-dont-queue-a-killed-thread-twice.patch) |
+| `winewayland-promote-retired-presenter-when-owner-stops-presenting` (patch 12) | with Wine's Wayland driver (`PROTON_ENABLE_WAYLAND=1`), a game's picture can freeze on an old frame while the game keeps running and responding: GE-Proton shows only the newest active Vulkan presenter of a window and discards the frames of the older ones, so when a game stops presenting through a newer swapchain and goes on with one on its older surface, nothing it draws reaches the screen; Warhammer Survivors (Unity 6) does this after Alt+Tab in exclusive fullscreen. The patch hands the window to a presenter whose frames are discarded once it is the only one still presenting, after the owner has presented nothing for 500 ms: Windows shows the frame presented last | GE-Proton's code: the presenter coordination (`wine-hotfixes/em-fixups` 0026, 0027 and 0039) comes from [Wine-Wineland](https://github.com/nanomatters/wine-wineland), and upstream Wine's Wayland driver has none | the [patch](patches/wine-hotfixes/pending/winewayland-promote-retired-presenter-when-owner-stops-presenting.patch) |
+
+Releases up to `proton-je-ge-11-11-4`, on GE-Proton11-11, also carried Proton-JE's patches 2 to 8, patch 9 and Valve's
+`d5c4b850198`; GE-Proton11-12 has them all, in the same versions. Patch 7, which frees the TEB and stacks of killed
+threads, is reported to Wine as bug [60712](https://bugs.winehq.org/show_bug.cgi?id=60712). Patch 9 was reported as bug
+[60663](https://bugs.winehq.org/show_bug.cgi?id=60663), which Wine master fixed in its own way
+([`48c5aa7ffa4`](https://gitlab.winehq.org/wine/wine/-/commit/48c5aa7ffa425664dea74c7cf936426b57c0aec2)).
+
+Checked on 2026-11-03 with the patched ntdll and wineserver swapped into the GE-Proton11-12 release, with
+[`thread_init_kill`](.claude/skills/rebase-ge/probes/thread_init_kill.c): several threads create threads and kill them
+at once, and the probe counts hung threads, leaked file descriptors and failed creations. With 8 threads killing 500
+threads each, the release fails 0 to 3 of the 4,000 creations with `STATUS_INVALID_CID` with ntsync and 5 to 19
+without it. Patch 10 alone leaves no such failure, but without ntsync 4 of 13 of these runs in 64-bit still failed a
+creation with `STATUS_ACCESS_VIOLATION` and left a file descriptor behind, and with 16 threads killing 2,000 each, 3
+of 24 runs in 32-bit did and one died with "wine client error: write: Bad file descriptor": patch 11's bug. With both
+patches, none of 52 runs of either size, 64- and 32-bit, with and without ntsync, failed a creation or left a file
+descriptor behind. Wine's `ntdll:sync`, `kernel32:sync` and `kernel32:thread` tests and Proton-JE's
+[probes](https://github.com/jegglest/proton-je/tree/je-11.0/docs-je/repro) pass on the release and with the patches,
+64- and 32-bit. Patch 10 also left kernel32's process, loader, debugger, toolhelp, thread, console, pipe and file
+tests and ntdll's thread, exception, info, wow64, om, pipe and file tests without new failures, checked on
+GE-Proton11-11 (`proton-je-ge-11-11-3`), whose patched server sources are the same, 64- and 32-bit.
+
+For `proton-je-ge-11-12-2`, checked on 2026-11-14, the same checks gave the same results: the release failed 3 of the
+4,000 creations with `STATUS_INVALID_CID` with ntsync, 64- and 32-bit, the patched ntdll and wineserver none, and 16
+runs of 16 threads killing 2,000 each without ntsync were clean. Patch 12 was checked with the patched win32u and
+winewayland swapped into `proton-je-ge-11-12-1`, on KDE Plasma's Wayland session: in exclusive fullscreen, Warhammer
+Survivors' picture froze on the first frame after Alt+Tab, and with the patch it comes back about half a second after
+the window does, when the driver hands the window to the game's swapchain. With Wine's X11 driver the game had no such
+freeze.
+
+### Installing
+
+Download `proton-je-ge-<version>.tar.gz` and its `.sha512sum` from [Releases](../../releases), check it with
+`sha512sum -c`, extract it into `~/.steam/root/compatibilitytools.d/` (Flatpak Steam:
+`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`), restart Steam, and pick the tool under the game's
+Properties > Compatibility.
+
+### Building
+
+As in GE-Proton's [Building](#building) section below. A pushed `proton-je-ge-*` tag is built the same way by
+`.github/workflows/release.yml` and published as a release.
+
+---
+
+*GE-Proton's README follows, unchanged.*
+
 > [!Caution]
 >  **Myself (GloriousEggroll) and this project (GE-Proton) are not affiliated with any other websites related to GE-Proton. There is no existing website for GE-Proton other than this GitHub repository.**
 
