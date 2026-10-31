@@ -1,3 +1,51 @@
+# Proton-JE-GE
+
+GloriousEggroll's GE-Proton with the Wine fixes of [Proton-JE](https://github.com/jegglest/proton-je) that are pending
+upstream. Proton-JE is Valve's Proton Experimental plus these fixes; Proton-JE-GE puts them on GE-Proton instead, for
+what GE adds on top of Valve, FSR 4 first of all ([Enabling FSR 4](#enabling-fsr-4) below: `PROTON_FSR4_UPGRADE=1 %command%`).
+
+> [!Important]
+> Proton-JE-GE is not GE-Proton, and GloriousEggroll does not support it. Report problems to
+> [this repository's issues](../../issues), unless stock GE-Proton has them too.
+
+| | |
+|---|---|
+| Base | [GE-Proton11-11](https://github.com/GloriousEggroll/proton-ge-custom/releases/tag/GE-Proton11-11), unchanged; its Wine is ValveSoftware/wine [`c53678ab22a`](https://github.com/ValveSoftware/wine/commit/c53678ab22a85f0fad3588dd34f0452a463bd015) |
+| Releases | x86_64 only; tags `proton-je-ge-<GE version>-<n>`, e.g. `proton-je-ge-11-11-1`; `-<n>` counts rebuilds on the same GE release |
+
+### What is added
+
+Six Wine patches in `patches/wine-hotfixes/pending/`, applied after all of GE's by the `PROTON-JE PATCHES` section of
+`patches/protonprep-valve-staging.sh`, the way GE applies its own. The build fails if one of them does not apply exactly
+(`.github/check-proton-je-patches.sh`).
+
+| Patches | Fixes | Upstream | Details |
+|---|---|---|---|
+| `ntdll-take-in-flight-alert-when-wait-on-address-times-out`, `ntdll-tests-wait-on-address-wake-racing-timeout` (Proton-JE's patches 2 and 3) | a wake that races a timed-out `RtlWaitOnAddress()` leaves an alert pending, so the thread's next wait returns early; Space Marine 2 crashes from it | Wine bug [60523](https://bugs.winehq.org/show_bug.cgi?id=60523), Proton [#8072](https://github.com/ValveSoftware/Proton/issues/8072) | [waitonaddress-stale-alert](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/waitonaddress-stale-alert.md) |
+| `server-keep-owned-ntsync-mutex-until-owner-releases-or-dies`, `server-keep-in-process-mutex-closed-while-in-use`, `kernel32-tests-abandon-mutex-acquired-after-close` (patches 4 to 6) | with ntsync, a mutex whose handle was closed while it was owned or in use is never abandoned, and its waiters hang | Wine bugs [60417](https://bugs.winehq.org/show_bug.cgi?id=60417), [60524](https://bugs.winehq.org/show_bug.cgi?id=60524) | [ntsync-mutex-owned-after-close](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/ntsync-mutex-owned-after-close.md), [ntsync-mutex-in-use-after-close](https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/patches/ntsync-mutex-in-use-after-close.md) |
+| `ntdll-ignore-semaphore-errors-in-rtlpunwaitcriticalsection` | `LeaveCriticalSection()` raises `STATUS_INVALID_HANDLE` on a bad semaphore, which crashes Helldivers 2 | Paul Gofman's `d5c4b850198` in Valve's Wine, in Proton Experimental since 20261027b | carried until GE's Wine has it |
+
+Checked on 2026-10-31 with the patched ntdll and wineserver swapped into the GE-Proton11-11 release: Wine's `ntdll:sync`
+and `kernel32:sync` tests pass in 64- and 32-bit (stock GE-Proton11-11: 4 and 3 failures), and Proton-JE's
+[probes](https://github.com/jegglest/proton-je/tree/je-11.0/docs-je/repro) find no stale alert, no hung abandoned mutex
+and no raise from `LeaveCriticalSection()`.
+
+### Installing
+
+Download `proton-je-ge-<version>.tar.gz` and its `.sha512sum` from [Releases](../../releases), check it with
+`sha512sum -c`, extract it into `~/.steam/root/compatibilitytools.d/` (Flatpak Steam:
+`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`), restart Steam, and pick the tool under the game's
+Properties > Compatibility.
+
+### Building
+
+As in GE-Proton's [Building](#building) section below. A pushed `proton-je-ge-*` tag is built the same way by
+`.github/workflows/release.yml` and published as a release.
+
+---
+
+*GE-Proton's README follows, unchanged.*
+
 > [!Caution]
 >  **Myself (GloriousEggroll) and this project (GE-Proton) are not affiliated with any other websites related to GE-Proton. There is no existing website for GE-Proton other than this GitHub repository.**
 
