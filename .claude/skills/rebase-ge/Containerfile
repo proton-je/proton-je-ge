@@ -1,0 +1,6 @@
+# The podman image je-wine-build, for wine-prep.sh and build-wine.sh, which build it from this file when it is
+# missing: GE's Wine patching (patch, autoconf, python3, perl, git) and a Wine build with MinGW.
+FROM registry.fedoraproject.org/fedora:42
+RUN dnf install -y -q gcc gcc-c++ make flex bison autoconf automake perl python3 git patch \
+    mingw64-gcc mingw32-gcc glibc-devel.i686 libgcc.i686 vulkan-loader-devel vulkan-headers \
+    elfutils binutils which file >/dev/null && dnf clean all
