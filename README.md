@@ -45,10 +45,24 @@ pass, 64- and 32-bit.
 
 ### Installing
 
-Download `proton-je-ge-<version>.tar.gz` and its `.sha512sum` from [Releases](../../releases), check it with
-`sha512sum -c`, extract it into `~/.steam/root/compatibilitytools.d/` (Flatpak Steam:
-`~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`), restart Steam, and pick the tool under the game's
-Properties > Compatibility.
+[`install-latest.sh`](install-latest.sh) downloads the newest release, checks its sha512 sum and installs it into Steam's
+`compatibilitytools.d` as one tool named `Proton-JE-GE Latest`, the way ProtonPlus installs a "Latest" runner: a game, or
+Steam's default, that is set to it keeps working across updates, and running the script again replaces the tool in
+place. It needs curl, tar, gzip and sha512sum and finds native or Flatpak Steam on its own:
+
+```bash
+curl -fsSLO https://raw.githubusercontent.com/proton-je/proton-je-ge/HEAD/install-latest.sh
+bash install-latest.sh
+```
+
+`--tag proton-je-ge-<version>` installs a particular release under the same name, `--dir` and `--name` change the
+directory and the tool name, `--force` reinstalls; `--help` lists them. Restart Steam, then pick `Proton-JE-GE Latest`
+under Settings > Compatibility or under the game's Properties > Compatibility.
+
+To install a release by hand, side by side with others, download `proton-je-ge-<version>.tar.gz` and its `.sha512sum`
+from [Releases](../../releases), check it with `sha512sum -c`, extract it into `~/.steam/root/compatibilitytools.d/`
+(Flatpak Steam: `~/.var/app/com.valvesoftware.Steam/data/Steam/compatibilitytools.d/`), restart Steam, and pick
+`proton-je-ge-<version>` under the game's Properties > Compatibility.
 
 ### Building
 
