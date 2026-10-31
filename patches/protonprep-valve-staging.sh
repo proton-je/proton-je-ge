@@ -599,6 +599,10 @@ apply_all_in_dir() {
     apply_patch "../patches/wine-hotfixes/pending/server-keep-in-process-mutex-closed-while-in-use.patch"
     apply_patch "../patches/wine-hotfixes/pending/kernel32-tests-abandon-mutex-acquired-after-close.patch"
 
+    # In Valve's Wine (d5c4b850198) since Proton Experimental 20261027b; drop once the wine submodule has it.
+    echo "WINE: -BACKPORT- ntdll: ignore semaphore errors in RtlpUnWaitCriticalSection() (Helldivers 2 crash)"
+    apply_patch "../patches/wine-hotfixes/pending/ntdll-ignore-semaphore-errors-in-rtlpunwaitcriticalsection.patch"
+
 ### END PROTON-JE PATCHES ###
 
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
