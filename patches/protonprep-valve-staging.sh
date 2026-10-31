@@ -592,6 +592,13 @@ apply_all_in_dir() {
     apply_patch "../patches/wine-hotfixes/pending/ntdll-take-in-flight-alert-when-wait-on-address-times-out.patch"
     apply_patch "../patches/wine-hotfixes/pending/ntdll-tests-wait-on-address-wake-racing-timeout.patch"
 
+    # https://bugs.winehq.org/show_bug.cgi?id=60417
+    # https://bugs.winehq.org/show_bug.cgi?id=60524
+    echo "WINE: -PENDING- server: abandon an ntsync mutex whose handle was closed while it was owned or in use"
+    apply_patch "../patches/wine-hotfixes/pending/server-keep-owned-ntsync-mutex-until-owner-releases-or-dies.patch"
+    apply_patch "../patches/wine-hotfixes/pending/server-keep-in-process-mutex-closed-while-in-use.patch"
+    apply_patch "../patches/wine-hotfixes/pending/kernel32-tests-abandon-mutex-acquired-after-close.patch"
+
 ### END PROTON-JE PATCHES ###
 
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
