@@ -581,6 +581,19 @@ apply_all_in_dir() {
     echo "WINE: -HOTFIX- Add Bluetooth LE GATT and WinRT BLE support"
     apply_all_in_dir "../patches/wine-hotfixes/bluetooth-le/"
 
+### PROTON-JE PATCHES ###
+
+    # Fixes pending upstream in Wine, from https://github.com/jegglest/proton-je
+    # (docs: https://github.com/jegglest/proton-je/tree/je-11.0/docs-je/patches).
+
+    # https://github.com/ValveSoftware/Proton/issues/8072
+    # https://bugs.winehq.org/show_bug.cgi?id=60523
+    echo "WINE: -PENDING- ntdll: take the alert of a RtlWaitOnAddress() wake that races a timeout (Space Marine 2 crash)"
+    apply_patch "../patches/wine-hotfixes/pending/ntdll-take-in-flight-alert-when-wait-on-address-times-out.patch"
+    apply_patch "../patches/wine-hotfixes/pending/ntdll-tests-wait-on-address-wake-racing-timeout.patch"
+
+### END PROTON-JE PATCHES ###
+
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
     autoreconf -f
     ./tools/make_requests
