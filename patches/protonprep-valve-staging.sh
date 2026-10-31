@@ -682,6 +682,7 @@ apply_all_in_dir() {
 ### PROTON-JE PATCHES ###
 
     # Wine fixes pending upstream that no GE-Proton release has yet (https://github.com/proton-je/proton-je-ge).
+    # .github/check-proton-je-patches.sh checks that every patch in this section applied exactly.
 
     # NtCreateThreadEx() fails with STATUS_INVALID_CID when the server drains a stale fd
     echo "WINE: -PENDING- server: keep the request's status when receive_fd() drops a stale fd (spurious thread creation failures)"
