@@ -585,6 +585,7 @@ apply_all_in_dir() {
 
     # Fixes pending upstream in Wine, from https://github.com/jegglest/proton-je
     # (docs: https://github.com/jegglest/proton-je/tree/je-11.0/docs-je/patches).
+    # .github/check-proton-je-patches.sh checks that every patch in this section applied exactly.
 
     # https://github.com/ValveSoftware/Proton/issues/8072
     # https://bugs.winehq.org/show_bug.cgi?id=60523
