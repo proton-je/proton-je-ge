@@ -599,6 +599,11 @@ apply_all_in_dir() {
     apply_patch "../patches/wine-hotfixes/pending/server-keep-in-process-mutex-closed-while-in-use.patch"
     apply_patch "../patches/wine-hotfixes/pending/kernel32-tests-abandon-mutex-acquired-after-close.patch"
 
+    # https://github.com/jegglest/proton-je/blob/je-11.0/docs-je/killed-thread-stacks.md
+    echo "WINE: -PENDING- ntdll: free the TEB and stacks of a thread killed by another thread (Helldivers 2 memory growth)"
+    apply_patch "../patches/wine-hotfixes/pending/ntdll-free-teb-and-stacks-of-killed-threads.patch"
+    apply_patch "../patches/wine-hotfixes/pending/kernel32-tests-killed-thread-stack-freed.patch"
+
     # In Valve's Wine (d5c4b850198) since Proton Experimental 20261027b; drop once the wine submodule has it.
     echo "WINE: -BACKPORT- ntdll: ignore semaphore errors in RtlpUnWaitCriticalSection() (Helldivers 2 crash)"
     apply_patch "../patches/wine-hotfixes/pending/ntdll-ignore-semaphore-errors-in-rtlpunwaitcriticalsection.patch"
