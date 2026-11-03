@@ -10,7 +10,9 @@ on:
 jobs:
   proton:
     name: Build ${{ inputs.name }}
-    runs-on: ubuntu-latest
+    # ubuntu-26.04's Docker 29.4.2 breaks 32-bit socket calls, and wineboot with them:
+    # https://github.com/actions/runner-images/issues/14790
+    runs-on: ubuntu-24.04
     steps:
       - name: Cleanup disk space
         uses: endersonmenezes/free-disk-space@v3
