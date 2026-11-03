@@ -679,6 +679,16 @@ apply_all_in_dir() {
     echo "WINE: -PENDING- ntdll: let a thread killed during its startup exit instead of hanging (Helldivers 2 thread growth)"
     apply_patch "../patches/wine-hotfixes/pending/ntdll-dont-keep-reply-pipe-open-during-thread-init.patch"
 
+### PROTON-JE PATCHES ###
+
+    # Wine fixes pending upstream that no GE-Proton release has yet (https://github.com/proton-je/proton-je-ge).
+
+    # NtCreateThreadEx() fails with STATUS_INVALID_CID when the server drains a stale fd
+    echo "WINE: -PENDING- server: keep the request's status when receive_fd() drops a stale fd (spurious thread creation failures)"
+    apply_patch "../patches/wine-hotfixes/pending/server-keep-request-status-when-dropping-stale-fd.patch"
+
+### END PROTON-JE PATCHES ###
+
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
     autoreconf -f
     ./tools/make_requests
