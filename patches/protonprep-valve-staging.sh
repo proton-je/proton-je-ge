@@ -691,6 +691,10 @@ apply_all_in_dir() {
     echo "WINE: -PENDING- ntdll: don't queue a killed thread twice for freeing (double free under thread churn)"
     apply_patch "../patches/wine-hotfixes/pending/ntdll-dont-queue-a-killed-thread-twice.patch"
 
+    # Wayland: the picture freezes when the presentation owner stops presenting while a retired presenter goes on
+    echo "WINE: -PENDING- win32u, winewayland: promote a retired presenter once the owner stops presenting (frozen picture after Alt+Tab)"
+    apply_patch "../patches/wine-hotfixes/pending/winewayland-promote-retired-presenter-when-owner-stops-presenting.patch"
+
 ### END PROTON-JE PATCHES ###
 
     echo "WINE: RUN AUTOCONF TOOLS/MAKE_REQUESTS"
